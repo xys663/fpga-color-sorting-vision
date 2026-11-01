@@ -19,6 +19,9 @@ git clone <this repo>
 2. 器件与速度等级（PH1P35MDG324 / -3）已写在 .al 里，不用改。
 3. 综合 → 布局布线 → 生成比特流 → 板载 AL-LINK 下载，或固化到 QSPI Flash。
 
+不想编译的话，[Releases](https://github.com/xys663/fpga-color-sorting-vision/releases/tag/v1.0)
+里有上板验证过的 `camera_to_dsi_display_v12.bit`，用 TD Programmer 直接下载即可。
+
 ## 七种模式
 
 KEY1、KEY2 循环切模式，KEY3 开关 OSD，KEY4 切换目标颜色（AUTO / RED / GRN / BLU / YEL / WHT）。
@@ -99,4 +102,5 @@ KEY1、KEY2 循环切模式，KEY3 开关 OSD，KEY4 切换目标颜色（AUTO /
 - clk1 上有一条准静态通路（复位与配置类信号）存在建立时间违例，最差裕量 −23.4 ns，不影响出图与识别，
   下一版用多周期约束和流水拆分收敛。
 
-比特流没有放在仓库里（1.8 MB 二进制），随参赛材料单独提交。
+比特流不进仓库（1.8 MB 二进制），放在 [v1.0 Release](https://github.com/xys663/fpga-color-sorting-vision/releases/tag/v1.0) 里，
+需要直接跑板子的人下那一个文件就够了。

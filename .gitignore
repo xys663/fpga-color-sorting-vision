@@ -1,0 +1,13 @@
+# Tang Dynasty 生成物
+*_Runs/
+runs/
+db/
+*.log
+*.jou
+*.str
+*.bit
+parser.out
+parsetab.py
+__pycache__/
+.DS_Store
+Thumbs.db

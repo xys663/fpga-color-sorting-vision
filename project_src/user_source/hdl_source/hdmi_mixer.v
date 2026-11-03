@@ -634,6 +634,7 @@ module hdmi_mixer #(
     // -------------------------------------------------------------------------
     wire       osd_on0;
     wire [23:0] osd_col0;
+    wire       osd_pan0;
     osd_overlay u_osd (
         .I_x(S_x), .I_y(S_y), .I_osd_en(I_osd_en), .I_mode(I_mode),
         .I_frame(frame_cnt), .I_count(obj_cnt), .I_target_sel(I_target_sel),
@@ -646,21 +647,32 @@ module hdmi_mixer #(
         .I_dl2(dd2), .I_dl1(dd1), .I_dl0(dd0),
         .I_pxm_r(pxm_r), .I_pxm_g(pxm_g), .I_pxm_b(pxm_b),
         .I_mxd2(qd2), .I_mxd1(qd1), .I_mxd0(qd0), .I_raw(mv_raw),
-        .O_on(osd_on0), .O_color(osd_col0)
+        .O_on(osd_on0), .O_color(osd_col0), .O_pan(osd_pan0)
     );
 
     reg        osd_on1, osd_on2;
     reg [23:0] osd_col1, osd_col2;
+    reg        osd_pan1, osd_pan2;      // 2026-11-02：OSD 底板标志，与文字同拍
     always @(posedge I_clk or negedge I_rst_n) begin
-        if(!I_rst_n) begin osd_on1<=0; osd_on2<=0; osd_col1<=0; osd_col2<=0; end
+        if(!I_rst_n) begin osd_on1<=0; osd_on2<=0; osd_col1<=0; osd_col2<=0;
+                       osd_pan1<=0; osd_pan2<=0; end
         else begin osd_on1<=osd_on0; osd_on2<=osd_on1;
-               osd_col1<=osd_col0; osd_col2<=osd_col1; end
+               osd_col1<=osd_col0; osd_col2<=osd_col1;
+               osd_pan1<=osd_pan0; osd_pan2<=osd_pan1; end
     end
 
     // 对比度增强（独立后级，仅作用于图像本体，不碰 OSD 文字/框，保持叠加层清晰）
     wire [23:0] pd2_ct = { enh_ct(pd2[23:16]),
                            enh_ct(pd2[15:8]),
                            enh_ct(pd2[7:0]) };
+
+    // 2026-11-02：OSD 底板 —— 底图压到 1/4 亮度，白字在任何画面上都读得出来。
+    //   模式 2(BIN)/4(TOON) 输出整屏纯白时，白色 OSD 文字会完全消失；
+    //   压暗底板只是把这一块区域调暗，图像本身（含后续对比度增强）不变。
+    //   取 1/4 而不是 1/2：H.264 压缩后低对比的浅灰底容易糊掉，1/4 更稳。
+    wire [23:0] pd2_dim = {2'b00, pd2_ct[23:18],
+                           2'b00, pd2_ct[15:10],
+                           2'b00, pd2_ct[7:2]};
 
     // -------------------------------------------------------------------------
     // 同步/数据 2 拍延迟（与原模块一致）
@@ -683,7 +695,8 @@ module hdmi_mixer #(
             O_hdmi_de <= S_video_de_2d;
             S_video_data_1d <= I_video_rd_data; S_video_data_2d <= S_video_data_1d;
 
-            O_hdmi_data <= S_window_active_2d ? (osd_on2 ? osd_col2 : pd2_ct) : 24'd0;
+            O_hdmi_data <= S_window_active_2d ?
+                           (osd_on2 ? osd_col2 : (osd_pan2 ? pd2_dim : pd2_ct)) : 24'd0;
         end
     end
 

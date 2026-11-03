@@ -41,8 +41,9 @@ module osd_overlay (
     input  wire [3:0]  I_mxd1,         //                 十位
     input  wire [3:0]  I_mxd0,         //                 个位
     input  wire [15:0] I_raw,          // 上一帧超阈值块数（未做时间/空间滤波）
-    output reg         O_on,           // 是否叠加
-    output reg [23:0]  O_color         // 叠加颜色
+    output reg         O_on,           // 是否叠加（文字/框线，实色）
+    output reg [23:0]  O_color,        // 叠加颜色
+    output reg         O_pan           // 是否落在 OSD 底板上（由 hdmi_mixer 压暗混合）
 );
 
     // ---- 颜色常量 ----
@@ -214,7 +215,7 @@ module osd_overlay (
     //   和"没烧对"两种问题无法区分（v4/v5 两轮就是卡在这里）。
     osd_text_rt #(3) u_ver (
         .I_x(I_x), .I_y(I_y), .I_x0(12'd74), .I_y0(12'd10),
-        .I_chars({7'h56,7'h31,7'h32}), .O_on(ver_on));     // "V12"
+        .I_chars({7'h56,7'h31,7'h33}), .O_on(ver_on));     // "V13"
 
     // ---- 2026-10-31 新增：模式5 判色"取数"行 ----
     //   判色阈值一直是靠猜的（蓝认不出、白被认成黄，两轮都是盲调）。
@@ -274,14 +275,22 @@ module osd_overlay (
     always @(*) begin
         O_on = 1'b0;
         O_color = 24'd0;
+        O_pan = 1'b0;
         if (I_osd_en) begin
+            // 2026-11-02：OSD 底板范围，覆盖全部文字行（x 4~146 / y 4~124）。
+            //   模式 2/4 的画面接近纯白时，白字压在白底上整行消失，
+            //   评委在画面上根本看不到当前模式名。压暗混合放在 hdmi_mixer
+            //   里做（osd_pan 与 O_on 同拍），叠加层本身仍是纯白字。
+            O_pan = (I_x >= 12'd4 && I_x <= 12'd146 &&
+                     I_y >= 12'd4 && I_y <= 12'd124);
             if (banner_bg) begin
                 O_on = 1'b1; O_color = C_RED;     // 红底
             end
             // 文字（白）优先级高于红底
+            // 2026-11-02：OBJ 类别与 C= 计数只有 FIND 模式有意义，其它模式不再显示
             if (banner_on  | mode_lbl_on | mode_val_on | fps_lbl_on | fps_val_on |
-                f_lbl_on   | f_val_on    | obj_lbl_on  | obj_tgt_on  | n_lbl_on  | n_val_on |
-                ver_on     | (mrg_on && in_find) |
+                f_lbl_on   | f_val_on    | ver_on     | (mrg_on && in_find) |
+                ((obj_lbl_on | obj_tgt_on | n_lbl_on | n_val_on) && in_find) |
                 (d_on && in_defmode) | (r_on && in_defmode)) begin
                 O_on = 1'b1; O_color = C_WHITE;
             end

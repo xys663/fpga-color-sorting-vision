@@ -101,6 +101,11 @@ module osd_text_rt #(
             7'h55: case(row)
                 0:pat=8'h66; 1:pat=8'h66; 2:pat=8'h66; 3:pat=8'h66;
                 4:pat=8'h66; 5:pat=8'h66; 6:pat=8'h66; 7:pat=8'h3C; endcase
+            // V（2026-11-02 新增：版本号 "V13" 要用。原来字体里没有 V，
+            //   这几个版本屏幕上其实一直显示成默认的 '?'，看着像个 3）
+            7'h56: case(row)
+                0:pat=8'h66; 1:pat=8'h66; 2:pat=8'h66; 3:pat=8'h66;
+                4:pat=8'h66; 5:pat=8'h3C; 6:pat=8'h18; 7:pat=8'h18; endcase
             // W
             7'h57: case(row)
                 0:pat=8'h63; 1:pat=8'h63; 2:pat=8'h63; 3:pat=8'h6B;
